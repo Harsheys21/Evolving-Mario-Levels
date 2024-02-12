@@ -345,8 +345,59 @@ Individual = Individual_Grid
 
 def generate_successors(population):
     results = []
+
+    roulette_cand = []
+    print("length:", len(population))
+    fitness_sum = sum(p._fitness for p in population)
+    
+    # Calculate cumulative probabilities
+    cumulative_probabilities = []
+    cumulative_prob = 0
+    for p in population:
+        cumulative_prob += p._fitness / fitness_sum
+        cumulative_probabilities.append(cumulative_prob)
+    
+    random.shuffle(population)
+    n = int(len(population) * 0.7)
+    for _ in range(n):
+        rand_val = random.random()  # Generate a random number between 0 and 1
+        selected = None
+        for i, cum_prob in enumerate(cumulative_probabilities):
+            if rand_val <= cum_prob:
+                selected = population[i]
+                break
+        
+        if selected is not None:
+            roulette_cand.append(selected)
+    
+    print("length after roulette:", len(roulette_cand))
+
+    random.shuffle(roulette_cand)
+    
+    # Tournament Selection
+    tournament_cand = []
+    tournament_size = 2
+    n = int(len(roulette_cand) * 0.5)
+    for _ in range(n):
+        # Randomly select individuals from the results to participate in the tournament
+        tournament = random.sample(roulette_cand, tournament_size)
+        
+        # Find the individual with the highest fitness in the tournament
+        winner = max(tournament, key=lambda x: x._fitness)
+        
+        # Add the winner to the selected individuals
+        tournament_cand.append(winner)
+        
+    print("length after tournament:", len(tournament_cand))
+    
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
+    # Generate children from selected individuals
+    for i in range(0, len(tournament_cand), 2):
+        if i + 1 < len(tournament_cand):
+            children = tournament_cand[i].generate_children(tournament_cand[i + 1])
+            results.extend(children)
+            
     return results
 
 
