@@ -2,11 +2,13 @@ import copy
 import heapq
 import metrics
 import multiprocessing.pool as mpool
+import sys
 import os
 import random
 import shutil
 import time
 import math
+import random
 
 width = 200
 height = 16
@@ -64,6 +66,17 @@ class Individual_Grid(object):
 
     # Mutate a genome into a new genome.  Note that this is a _genome_, not an individual!
     def mutate(self, genome):
+
+
+        # Weights are how often an individual tile is going to be changed.
+        EMPTY_WEIGHT = 0.09
+        WALL_WEIGHT = .005
+        COIN_BLOCK_WEIGHT = 0.005
+        MUSH_BLOCK_WEIGHT = 0.04
+        COIN_WEIGHT = 0.01
+        PIPE_WEIGHT = 0.005
+        ENEMY_WEIGHT = 0.0002   
+
         # STUDENT implement a mutation operator, also consider not mutating this individual
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
@@ -72,8 +85,108 @@ class Individual_Grid(object):
         right = width - 1
         for y in range(height):
             for x in range(left, right):
-                pass
+                match genome[x][y]:
+                    case "x":
+                        if random.random() < WALL_WEIGHT:
+
+
+
         return genome
+
+    def mutate_do_something:
+        
+
+    def mutate_swap_with_random(genome, x,y):
+        swap = genome[x][y]
+        rand_x = random.randrange(1, width -1)
+        rand_y = random.randrange(0, height)
+
+        entry_two = genome[rand_x][rand_y]
+        
+        # Finish swap
+        genome[x][y] = entry_two
+        genome[rand_x][rand_y] = swap
+
+    def mutate_swap_two(genome, x1, y1, x2, y2):
+        swap = genome[x1][y1]
+        entry_two = genome[x2][y2]
+        
+        # Finish swap
+        genome[x1][y1] = entry_two
+        genome[x2][y2] = swap   
+        
+        
+    def mutate_becomes_random(genome, x,y):
+        if (y <= 15):
+            genome[x][y] = random.randrange(0, len(options) - 1)
+        
+    def mutate_becomes_air(genome, x,y):
+        genome[x][y] = options[0]
+        
+    def mutate_area_becomes_air(genome, x,y):
+        area = random.randrange(1,30)
+        
+        # TODO: Possibly change this to some kind of thing that cuts the area off instead of just giving up
+        if (x - area < 1) or (x + area > width) \
+        or (y - area < 1) or (y + area > height):
+            return
+
+        for a in range(x, x + area):
+            for b in range(y, y + area):
+                genome[a][b] = options[0]
+
+
+    def mutate_area_becomes_other_area(genome, x,y):
+        area = random.randrange(1,20)
+
+        x2 = random.randrange(1, width-1 - area)
+        y2 = random.randrange(0, height - area)
+        
+        # TODO: Possibly change this to some kind of thing that cuts the area off instead of just giving up
+        if (x2 - area < 1) or (x2 + area > width) \
+        or (y2 - area < 1) or (y2 + area > height):
+            return
+
+        if (x - area < 1) or (x + area > width) \
+        or (y - area < 1) or (y + area > height):
+            return
+
+        for x in range(x2, x2 + area):
+            for y in range(y2, y2 + area):
+                swap = genome[x][y]
+                entry_two = genome[x2][y2]
+                
+                # Finish swap
+                genome[x][y] = entry_two
+                genome[x2][y2] = swap  
+                
+        
+    def mutate_correct_pipe_top(genome, x,y):
+        if genome[x][y] == "T":
+            if y >= 15:
+                genome[x][y] = "-"
+                return
+            for a in range (y, 0):
+                genome[x][a] = "|"
+
+
+    def mutate_correct_pipe_section(genome, x,y):
+        top = ""
+        if genome[x,y] == "|":
+            if y >= 15:
+                genome[x,y] = "-"
+                return
+            
+            for a in range (y, height):
+                if genome[x][a] != "|":
+                    genome[x][a] = "T"
+                    top = a
+                if a == height: return
+
+            for a in range (y, 0):
+                genome[x][a] = "|" 
+                    
+
 
     # Create zero or more children from self and other
     def generate_children(self, other):
@@ -84,10 +197,58 @@ class Individual_Grid(object):
         right = width - 1
         for y in range(height):
             for x in range(left, right):
+                # pass
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                pass
+                if other.genome[y][x] == "-" and random.random() < 0.5:
+                        new_genome[y][x] = other.genome[y][x]
+                else:
+                # first heuristic checks the sky. 
+                    if y < int(height * 0.80):
+                        # checks enemy position:
+                        if new_genome[y][x] == "E" and (new_genome[y+1][x] not in ["X", "?", "M", "B"]) and other.genome[y][x] != "E":
+                            new_genome[y][x] == other.genome[y][x]
+
+                        # prevents blocks from stacking on each other
+                        if (new_genome[y][x] in ["X", "?", "M", "B"]) and (new_genome[y+1][x] in ["X", "?", "M", "B"]) and (other.genome[y][x] not in ["X", "?", "M", "B"]):
+                            new_genome[y][x] = other.genome[y][x]
+
+                        # checks whether there is a pipe segment or top
+                        if (new_genome[y][x] in ["T", "|"]) and (other.genome[y][x] not in ["T", "|"]):
+                            new_genome[y][x] = other.genome[y][x]
+
+                        # checks if there's a wall at the sky
+                        if new_genome[y][x] == "X" and other.genome[y][x] != "X":
+                            new_genome[y][x] = other.genome[y][x]
+                    else:
+                        # check all ground related actions
+                        # checks enemy position:
+                        # checks if enemy is on a platorm
+                        if new_genome[y][x] == "E" and new_genome[y+1][x] not in ["X", "?", "M", "B"] and other.genome[y][x] != "E":
+                                new_genome[y][x] = other.genome[y][x]
+
+                        # Update based on stacked blocks
+                        if y < (height - 2):
+                            if new_genome[y][x] in ["X", "?", "M", "B"] and new_genome[y+1][x] in ["X", "?", "M", "B"] and other.genome[y][x] == "-":
+                                if random.random() < 0.7:
+                                    new_genome[y][x] = other.genome[y][x]
+
+                        # ensures pipes are based properly
+                        if (new_genome[y][x] in ["T", "|"]) and (new_genome[y + 1][x] not in ["|", "X"]) and other.genome[y+1][x] in ["X", "|"]:
+                            new_genome[y+1][x] = other.genome[y+1][x]
+
+                        # Update surroudnings in beginning
+                        if x < int(right * 0.05) and y < height - 1:
+                            if other.genome[y][x] == "-":
+                                new_genome[y][x] = other.genome[y][x]
+
         # do mutation; note we're returning a one-element tuple here
+        # for h in new_genome:
+            # for w in h:
+                # print(w, end="")
+            # print()
+        # exit()
+
         return (Individual_Grid(new_genome),)
 
     # Turn the genome into a level string (easy for this genome)
@@ -345,8 +506,44 @@ Individual = Individual_Grid
 
 def generate_successors(population):
     results = []
-    # STUDENT Design and implement this
-    # Hint: Call generate_children() on some individuals and fill up results.
+    
+    # Roulette selection
+    roulette_cand = []
+    fitness_sum = sum(p._fitness for p in population)
+    cumulative_probabilities = []
+    cumulative_prob = 0
+    for p in population:
+        cumulative_prob += p._fitness / fitness_sum
+        cumulative_probabilities.append(cumulative_prob)
+    
+    random.shuffle(population)
+    n = int(len(population))
+    for _ in range(n):
+        rand_val = random.random()
+        selected = None
+        for i, cum_prob in enumerate(cumulative_probabilities):
+            if rand_val <= cum_prob:
+                selected = population[i]
+                break
+        
+        if selected is not None:
+            roulette_cand.append(selected)
+    
+    # Tournament selection
+    tournament_cand = []
+    tournament_size = 2
+    n = int(len(roulette_cand))
+    for _ in range(n):
+        tournament = random.sample(roulette_cand, tournament_size)
+        winner = max(tournament, key=lambda x: x._fitness)
+        tournament_cand.append(winner)
+    
+    # Generate children from selected individuals
+    for i in range(len(tournament_cand)):
+        parent1 = tournament_cand[i]
+        parent2 = random.choice(tournament_cand)
+        results.extend(parent1.generate_children(parent2))
+    
     return results
 
 
@@ -362,12 +559,12 @@ def ga():
         init_time = time.time()
         # STUDENT (Optional) change population initialization
         population = [Individual.random_individual() if random.random() < 0.9
-                      else Individual.empty_individual()
-                      for _g in range(pop_limit)]
+                    else Individual.empty_individual()
+                    for _g in range(pop_limit)]
         # But leave this line alone; we have to reassign to population because we get a new population that has more cached stuff in it.
         population = pool.map(Individual.calculate_fitness,
-                              population,
-                              batch_size)
+                            population,
+                            batch_size)
         init_done = time.time()
         print("Created and calculated initial population statistics in:", init_done - init_time, "seconds")
         generation = 0
@@ -399,12 +596,13 @@ def ga():
                 print("Generated successors in:", gendone - gentime, "seconds")
                 # Calculate fitness in batches in parallel
                 next_population = pool.map(Individual.calculate_fitness,
-                                           next_population,
-                                           batch_size)
+                                        next_population,
+                                        batch_size)
                 popdone = time.time()
                 print("Calculated fitnesses in:", popdone - gendone, "seconds")
                 population = next_population
         except KeyboardInterrupt:
+            print("Keyboard interrupt detected. Exiting GA process...")
             pass
     return population
 
