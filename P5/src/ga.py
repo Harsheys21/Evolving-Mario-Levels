@@ -8,6 +8,7 @@ import random
 import shutil
 import time
 import math
+import random
 
 width = 200
 height = 16
@@ -65,6 +66,17 @@ class Individual_Grid(object):
 
     # Mutate a genome into a new genome.  Note that this is a _genome_, not an individual!
     def mutate(self, genome):
+
+
+        # Weights are how often an individual tile is going to be changed.
+        EMPTY_WEIGHT = 0.09
+        WALL_WEIGHT = .005
+        COIN_BLOCK_WEIGHT = 0.005
+        MUSH_BLOCK_WEIGHT = 0.04
+        COIN_WEIGHT = 0.01
+        PIPE_WEIGHT = 0.005
+        ENEMY_WEIGHT = 0.0002   
+
         # STUDENT implement a mutation operator, also consider not mutating this individual
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
@@ -73,8 +85,108 @@ class Individual_Grid(object):
         right = width - 1
         for y in range(height):
             for x in range(left, right):
-                pass
+                match genome[x][y]:
+                    case "x":
+                        if random.random() < WALL_WEIGHT:
+
+
+
         return genome
+
+    def mutate_do_something:
+        
+
+    def mutate_swap_with_random(genome, x,y):
+        swap = genome[x][y]
+        rand_x = random.randrange(1, width -1)
+        rand_y = random.randrange(0, height)
+
+        entry_two = genome[rand_x][rand_y]
+        
+        # Finish swap
+        genome[x][y] = entry_two
+        genome[rand_x][rand_y] = swap
+
+    def mutate_swap_two(genome, x1, y1, x2, y2):
+        swap = genome[x1][y1]
+        entry_two = genome[x2][y2]
+        
+        # Finish swap
+        genome[x1][y1] = entry_two
+        genome[x2][y2] = swap   
+        
+        
+    def mutate_becomes_random(genome, x,y):
+        if (y <= 15):
+            genome[x][y] = random.randrange(0, len(options) - 1)
+        
+    def mutate_becomes_air(genome, x,y):
+        genome[x][y] = options[0]
+        
+    def mutate_area_becomes_air(genome, x,y):
+        area = random.randrange(1,30)
+        
+        # TODO: Possibly change this to some kind of thing that cuts the area off instead of just giving up
+        if (x - area < 1) or (x + area > width) \
+        or (y - area < 1) or (y + area > height):
+            return
+
+        for a in range(x, x + area):
+            for b in range(y, y + area):
+                genome[a][b] = options[0]
+
+
+    def mutate_area_becomes_other_area(genome, x,y):
+        area = random.randrange(1,20)
+
+        x2 = random.randrange(1, width-1 - area)
+        y2 = random.randrange(0, height - area)
+        
+        # TODO: Possibly change this to some kind of thing that cuts the area off instead of just giving up
+        if (x2 - area < 1) or (x2 + area > width) \
+        or (y2 - area < 1) or (y2 + area > height):
+            return
+
+        if (x - area < 1) or (x + area > width) \
+        or (y - area < 1) or (y + area > height):
+            return
+
+        for x in range(x2, x2 + area):
+            for y in range(y2, y2 + area):
+                swap = genome[x][y]
+                entry_two = genome[x2][y2]
+                
+                # Finish swap
+                genome[x][y] = entry_two
+                genome[x2][y2] = swap  
+                
+        
+    def mutate_correct_pipe_top(genome, x,y):
+        if genome[x][y] == "T":
+            if y >= 15:
+                genome[x][y] = "-"
+                return
+            for a in range (y, 0):
+                genome[x][a] = "|"
+
+
+    def mutate_correct_pipe_section(genome, x,y):
+        top = ""
+        if genome[x,y] == "|":
+            if y >= 15:
+                genome[x,y] = "-"
+                return
+            
+            for a in range (y, height):
+                if genome[x][a] != "|":
+                    genome[x][a] = "T"
+                    top = a
+                if a == height: return
+
+            for a in range (y, 0):
+                genome[x][a] = "|" 
+                    
+
 
     # Create zero or more children from self and other
     def generate_children(self, other):
