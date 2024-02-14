@@ -73,6 +73,7 @@ class Individual_Grid(object):
         WALL_WEIGHT = .005
         COIN_BLOCK_WEIGHT = 0.005
         MUSH_BLOCK_WEIGHT = 0.04
+        BREAKABLE_WEIGHT = 0.001
         COIN_WEIGHT = 0.01
         PIPE_WEIGHT = 0.005
         ENEMY_WEIGHT = 0.0002   
@@ -86,15 +87,64 @@ class Individual_Grid(object):
         for y in range(height):
             for x in range(left, right):
                 match genome[x][y]:
-                    case "x":
+                    case "-":
+                        if random.random() < EMPTY_WEIGHT: 
+                            self.mutate_do_something(genome, x,y)               
+                    case "X":
                         if random.random() < WALL_WEIGHT:
-
-
+                            self.mutate_do_something(genome, x,y)
+                    case "?":
+                        if random.random() < COIN_BLOCK_WEIGHT:
+                            self.mutate_do_something(genome, x,y)
+                    case "M":
+                        if random.random() < MUSH_BLOCK_WEIGHT:
+                            self.mutate_do_something(genome, x,y)                
+                    case "B":
+                        if random.random() < BREAKABLE_WEIGHT:
+                            self.mutate_do_something(genome, x,y)               
+                    case "o":
+                        if random.random() < COIN_WEIGHT:
+                            self.mutate_do_something(genome, x,y)
+                    case "|":
+                        if random.random() < PIPE_WEIGHT:
+                            self.mutate_do_something(genome, x,y)
+                        self.mutate_correct_pipe_section(genome,x,y)                        
+                    case "T":
+                        if random.random() < PIPE_WEIGHT:
+                            self.mutate_do_something(genome, x,y)
+                        self.mutate_correct_pipe_section(genome, x,y)        
+                    case  "E": 
+                        if random.random() < ENEMY_WEIGHT:
+                            self.mutate_do_something(genome, x,y)
 
         return genome
 
-    def mutate_do_something:
+    def mutate_do_something(self, genome, x,y):
+        RANDOM_SWAP_WEIGHT = 0.15
+        SWAP_TWO_WEIGHT = 0.05
+        BECOME_RANDOM_WEIGHT = 0.02
+        BECOME_AIR_WEIGHT = 0.07
+        AREA_WEIGHT = .2
+
+        if random.random() < RANDOM_SWAP_WEIGHT:
+            self.mutate_swap_with_random(genome, x, y)
+            return
         
+        if random.random() < SWAP_TWO_WEIGHT:
+            self.mutate_swap_two(self, genome, x, y)
+            return
+
+        if random.random() < BECOME_RANDOM_WEIGHT:
+            self.mutate_becomes_random(genome, x, y)
+            return
+
+        if random.random() < BECOME_AIR_WEIGHT:
+            self.mutate_becomes_air(genome, x, y)
+            return
+        
+        if random.random() < AREA_WEIGHT:
+            self.mutate_area_becomes_other_area(genome, x, y)
+            return
 
     def mutate_swap_with_random(genome, x,y):
         swap = genome[x][y]
@@ -107,7 +157,11 @@ class Individual_Grid(object):
         genome[x][y] = entry_two
         genome[rand_x][rand_y] = swap
 
-    def mutate_swap_two(genome, x1, y1, x2, y2):
+    def mutate_swap_two(self, genome, x1, y1):
+
+        x2 = random.randrange(self.left, self.right)
+        y2 = random.randrange(0, self.height)
+
         swap = genome[x1][y1]
         entry_two = genome[x2][y2]
         
@@ -136,7 +190,7 @@ class Individual_Grid(object):
                 genome[a][b] = options[0]
 
 
-    def mutate_area_becomes_other_area(genome, x,y):
+    def mutate_area_becomes_other_area(self, genome, x,y):
         area = random.randrange(1,20)
 
         x2 = random.randrange(1, width-1 - area)
@@ -161,7 +215,7 @@ class Individual_Grid(object):
                 genome[x2][y2] = swap  
                 
         
-    def mutate_correct_pipe_top(genome, x,y):
+    def mutate_correct_pipe_top(self, genome, x,y):
         if genome[x][y] == "T":
             if y >= 15:
                 genome[x][y] = "-"
@@ -170,11 +224,11 @@ class Individual_Grid(object):
                 genome[x][a] = "|"
 
 
-    def mutate_correct_pipe_section(genome, x,y):
+    def mutate_correct_pipe_section(self, genome, x,y):
         top = ""
-        if genome[x,y] == "|":
+        if genome[x][y] == "|":
             if y >= 15:
-                genome[x,y] = "-"
+                genome[x][y] = "-"
                 return
             
             for a in range (y, height):
@@ -544,6 +598,10 @@ def generate_successors(population):
         parent2 = random.choice(tournament_cand)
         results.extend(parent1.generate_children(parent2))
     
+    # Mutate
+    for p in population:
+        p.mutate(p.genome)
+
     return results
 
 
