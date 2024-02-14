@@ -86,7 +86,7 @@ class Individual_Grid(object):
         right = width - 1
         for y in range(height):
             for x in range(left, right):
-                match genome[x][y]:
+                match genome[y][x]:
                     case "-":
                         if random.random() < EMPTY_WEIGHT: 
                             self.mutate_do_something(genome, x,y)               
@@ -131,7 +131,7 @@ class Individual_Grid(object):
             return
         
         if random.random() < SWAP_TWO_WEIGHT:
-            self.mutate_swap_two(self, genome, x, y)
+            self.mutate_swap_two(genome, x, y)
             return
 
         if random.random() < BECOME_RANDOM_WEIGHT:
@@ -142,42 +142,41 @@ class Individual_Grid(object):
             self.mutate_becomes_air(genome, x, y)
             return
         
-        if random.random() < AREA_WEIGHT:
-            self.mutate_area_becomes_other_area(genome, x, y)
-            return
+        # if random.random() < AREA_WEIGHT:
+        #     self.mutate_area_becomes_other_area(genome, x, y)
+        #     return
 
-    def mutate_swap_with_random(genome, x,y):
-        swap = genome[x][y]
+    def mutate_swap_with_random(self, genome, x,y):
+        swap = genome[y][x]
         rand_x = random.randrange(1, width -1)
-        rand_y = random.randrange(0, height)
+        rand_y = random.randrange(0, height-1)
 
-        entry_two = genome[rand_x][rand_y]
+        entry_two = genome[rand_y][rand_x]
         
         # Finish swap
-        genome[x][y] = entry_two
-        genome[rand_x][rand_y] = swap
+        genome[y][x] = entry_two
+        genome[rand_y][rand_x] = swap
 
     def mutate_swap_two(self, genome, x1, y1):
 
-        x2 = random.randrange(self.left, self.right)
-        y2 = random.randrange(0, self.height)
+        x2 = random.randrange(1, width-1)
+        y2 = random.randrange(0, height-1)
 
-        swap = genome[x1][y1]
-        entry_two = genome[x2][y2]
+        swap = genome[y1][x1]
+        entry_two = genome[y2][x2]
         
         # Finish swap
-        genome[x1][y1] = entry_two
-        genome[x2][y2] = swap   
-        
-        
-    def mutate_becomes_random(genome, x,y):
+        genome[y1][x1] = entry_two
+        genome[y2][x2] = swap   
+
+    def mutate_becomes_random(self, genome, x,y):
         if (y <= 15):
-            genome[x][y] = random.randrange(0, len(options) - 1)
+            genome[y][x] = options[random.randint(0, len(options) - 1)]
         
-    def mutate_becomes_air(genome, x,y):
-        genome[x][y] = options[0]
+    def mutate_becomes_air(self, genome, x,y):
+        genome[y][x] = options[0]
         
-    def mutate_area_becomes_air(genome, x,y):
+    def mutate_area_becomes_air(self, genome, x,y):
         area = random.randrange(1,30)
         
         # TODO: Possibly change this to some kind of thing that cuts the area off instead of just giving up
@@ -187,7 +186,7 @@ class Individual_Grid(object):
 
         for a in range(x, x + area):
             for b in range(y, y + area):
-                genome[a][b] = options[0]
+                genome[b][a] = options[0]
 
 
     def mutate_area_becomes_other_area(self, genome, x,y):
@@ -207,41 +206,39 @@ class Individual_Grid(object):
 
         for x in range(x2, x2 + area):
             for y in range(y2, y2 + area):
-                swap = genome[x][y]
-                entry_two = genome[x2][y2]
+                swap = genome[y][x]
+                entry_two = genome[y2][x2]
                 
                 # Finish swap
-                genome[x][y] = entry_two
-                genome[x2][y2] = swap  
+                genome[y][x] = entry_two
+                genome[y2][x2] = swap  
                 
         
     def mutate_correct_pipe_top(self, genome, x,y):
-        if genome[x][y] == "T":
+        if genome[y][x] == "T":
             if y >= 15:
-                genome[x][y] = "-"
+                genome[y][x] = "-"
                 return
             for a in range (y, 0):
-                genome[x][a] = "|"
+                genome[a][x] = "|"
 
 
     def mutate_correct_pipe_section(self, genome, x,y):
         top = ""
-        if genome[x][y] == "|":
+        if genome[y][x] == "|":
             if y >= 15:
-                genome[x][y] = "-"
+                genome[y][x] = "-"
                 return
             
             for a in range (y, height):
-                if genome[x][a] != "|":
-                    genome[x][a] = "T"
+                if genome[a][x] != "|":
+                    genome[a][x] = "T"
                     top = a
                 if a == height: return
 
             for a in range (y, 0):
-                genome[x][a] = "|" 
+                genome[a][x] = "|" 
                     
-
-
     # Create zero or more children from self and other
     def generate_children(self, other):
         new_genome = copy.deepcopy(self.genome)
@@ -278,8 +275,9 @@ class Individual_Grid(object):
                         # check all ground related actions
                         # checks enemy position:
                         # checks if enemy is on a platorm
-                        if new_genome[y][x] == "E" and new_genome[y+1][x] not in ["X", "?", "M", "B"] and other.genome[y][x] != "E":
-                                new_genome[y][x] = other.genome[y][x]
+                        if y < height-1:
+                            if new_genome[y][x] == "E" and new_genome[y+1][x] not in ["X", "?", "M", "B"] and other.genome[y][x] != "E":
+                                    new_genome[y][x] = other.genome[y][x]
 
                         # Update based on stacked blocks
                         if y < (height - 2):
@@ -288,8 +286,9 @@ class Individual_Grid(object):
                                     new_genome[y][x] = other.genome[y][x]
 
                         # ensures pipes are based properly
-                        if (new_genome[y][x] in ["T", "|"]) and (new_genome[y + 1][x] not in ["|", "X"]) and other.genome[y+1][x] in ["X", "|"]:
-                            new_genome[y+1][x] = other.genome[y+1][x]
+                        if y < height-1:
+                            if (new_genome[y][x] in ["T", "|"]) and (new_genome[y + 1][x] not in ["|", "X"]) and other.genome[y+1][x] in ["X", "|"]:
+                                new_genome[y+1][x] = other.genome[y+1][x]
 
                         # Update surroudnings in beginning
                         if x < int(right * 0.05) and y < height - 1:
@@ -302,6 +301,8 @@ class Individual_Grid(object):
                 # print(w, end="")
             # print()
         # exit()
+        # call mutate
+        new_genome = self.mutate(new_genome)
 
         return (Individual_Grid(new_genome),)
 
@@ -373,17 +374,17 @@ class Individual_DE(object):
         # STUDENT Add more metrics?
         # STUDENT Improve this with any code you like
         coefficients = dict(
-            meaningfulJumpVariance=0.5,
-            negativeSpace=0.6,
-            pathPercentage=0.5,
+            meaningfulJumpVariance=0.7, #increase weight
+            negativeSpace=0.5, #decrease weight
+            pathPercentage=0.6,
             emptyPercentage=0.6,
-            linearity=-0.5,
+            linearity=-0.4, #adjust weight
             solvability=2.0
         )
         penalties = 0
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
         if len(list(filter(lambda de: de[1] == "6_stairs", self.genome))) > 5:
-            penalties -= 2
+            penalties -= 3 # increase penalty
         # STUDENT If you go for the FI-2POP extra credit, you can put constraint calculation in here too and cache it in a new entry in __slots__.
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients)) + penalties
@@ -395,84 +396,39 @@ class Individual_DE(object):
         return self._fitness
 
     def mutate(self, new_genome):
-        # STUDENT How does this work?  Explain it in your writeup.
-        # STUDENT consider putting more constraints on this, to prevent generating weird things
         if random.random() < 0.1 and len(new_genome) > 0:
             to_change = random.randint(0, len(new_genome) - 1)
             de = new_genome[to_change]
-            new_de = de
+            new_de = list(de)  # Convert to list for mutable modification
             x = de[0]
             de_type = de[1]
             choice = random.random()
-            if de_type == "4_block":
-                y = de[2]
-                breakable = de[3]
-                if choice < 0.33:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                elif choice < 0.66:
-                    y = offset_by_upto(y, height / 2, min=0, max=height - 1)
-                else:
-                    breakable = not de[3]
-                new_de = (x, de_type, y, breakable)
-            elif de_type == "5_qblock":
-                y = de[2]
-                has_powerup = de[3]  # boolean
-                if choice < 0.33:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                elif choice < 0.66:
-                    y = offset_by_upto(y, height / 2, min=0, max=height - 1)
-                else:
-                    has_powerup = not de[3]
-                new_de = (x, de_type, y, has_powerup)
-            elif de_type == "3_coin":
-                y = de[2]
-                if choice < 0.5:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                else:
-                    y = offset_by_upto(y, height / 2, min=0, max=height - 1)
-                new_de = (x, de_type, y)
-            elif de_type == "7_pipe":
-                h = de[2]
-                if choice < 0.5:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                else:
-                    h = offset_by_upto(h, 2, min=2, max=height - 4)
-                new_de = (x, de_type, h)
-            elif de_type == "0_hole":
-                w = de[2]
-                if choice < 0.5:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                else:
-                    w = offset_by_upto(w, 4, min=1, max=width - 2)
-                new_de = (x, de_type, w)
-            elif de_type == "6_stairs":
-                h = de[2]
-                dx = de[3]  # -1 or 1
-                if choice < 0.33:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                elif choice < 0.66:
-                    h = offset_by_upto(h, 8, min=1, max=height - 4)
-                else:
-                    dx = -dx
-                new_de = (x, de_type, h, dx)
-            elif de_type == "1_platform":
-                w = de[2]
-                y = de[3]
-                madeof = de[4]  # from "?", "X", "B"
-                if choice < 0.25:
-                    x = offset_by_upto(x, width / 8, min=1, max=width - 2)
-                elif choice < 0.5:
-                    w = offset_by_upto(w, 8, min=1, max=width - 2)
-                elif choice < 0.75:
-                    y = offset_by_upto(y, height, min=0, max=height - 1)
-                else:
-                    madeof = random.choice(["?", "X", "B"])
-                new_de = (x, de_type, w, y, madeof)
-            elif de_type == "2_enemy":
-                pass
-            new_genome.pop(to_change)
-            heapq.heappush(new_genome, new_de)
+            
+            mutation_strategies = {
+                "4_block": lambda: (x, de_type, offset_by_upto(de[2], height / 2, min=0, max=height - 1), not de[3] if choice >= 0.40 else de[3]),
+                "5_qblock": lambda: (offset_by_upto(x, width / 8, min=1, max=width - 2), de_type, offset_by_upto(de[2], height / 2, min=0, max=height - 1), not de[3] if choice >= 0.40 else de[3]),
+                "3_coin": lambda: (offset_by_upto(x, width / 8, min=1, max=width - 2), de_type, offset_by_upto(de[2], height / 2, min=0, max=height - 1)),
+                "7_pipe": lambda: (offset_by_upto(x, width / 8, min=1, max=width - 2), de_type, offset_by_upto(de[2], 2, min=2, max=height - 4)),
+                "0_hole": lambda: (offset_by_upto(x, width / 8, min=1, max=width - 2), de_type, offset_by_upto(de[2], 4, min=1, max=width - 2)),
+                "6_stairs": lambda: (offset_by_upto(x, width / 8, min=1, max=width - 2), de_type, offset_by_upto(de[2], 8, min=1, max=height - 4), -de[3] if choice >= 0.40 else de[3]),
+                "1_platform": lambda: (
+                    offset_by_upto(x, width / 8, min=1, max=width - 2) if choice < 0.25 else de[0],
+                    de_type,
+                    offset_by_upto(de[2], 8, min=1, max=width - 2) if choice < 0.5 else de[2],
+                    offset_by_upto(de[3], height, min=0, max=height - 1) if choice < 0.75 else de[3],
+                    random.choice(["?", "X", "B"]) if choice >= 0.75 else de[4]
+                ),
+                "2_enemy": lambda: de  # No mutation for enemy type
+            }
+            
+            # Apply mutation based on the design element type
+            mutation_func = mutation_strategies.get(de_type, lambda: de)
+            new_de = mutation_func()
+            
+            new_genome[to_change] = tuple(new_de)
+            
         return new_genome
+
 
     def generate_children(self, other):
         # STUDENT How does this work?  Explain it in your writeup.
@@ -555,7 +511,7 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-Individual = Individual_Grid
+Individual = Individual_DE
 
 
 def generate_successors(population):
@@ -592,18 +548,16 @@ def generate_successors(population):
         winner = max(tournament, key=lambda x: x._fitness)
         tournament_cand.append(winner)
     
+    # Remove individuals with genome length of 0
+    tournament_cand = [ind for ind in tournament_cand if len(ind.genome) > 0]
+
     # Generate children from selected individuals
     for i in range(len(tournament_cand)):
         parent1 = tournament_cand[i]
         parent2 = random.choice(tournament_cand)
         results.extend(parent1.generate_children(parent2))
-    
-    # Mutate
-    for p in population:
-        p.mutate(p.genome)
 
     return results
-
 
 def ga():
     # STUDENT Feel free to play with this parameter
@@ -629,8 +583,8 @@ def ga():
         start = time.time()
         now = start
         print("Use ctrl-c to terminate this loop manually.")
-        try:
-            while True:
+        while True:
+            try:
                 now = time.time()
                 # Print out statistics
                 if generation > 0:
@@ -659,9 +613,9 @@ def ga():
                 popdone = time.time()
                 print("Calculated fitnesses in:", popdone - gendone, "seconds")
                 population = next_population
-        except KeyboardInterrupt:
-            print("Keyboard interrupt detected. Exiting GA process...")
-            pass
+            except KeyboardInterrupt:
+                print("Keyboard interrupt detected. Exiting GA process...")
+                pass
     return population
 
 
